@@ -1,0 +1,21 @@
+server {
+        listen 80 default_server;
+        listen [::]:80 default_server;
+
+        server_name local.git-run.org  www.local.git-run.org;
+
+        location / {
+           root /var/www/html;
+        }
+
+        location ~ /hello {
+           root /var/www;
+        index page.html;
+        }
+
+        location ~ /buy {
+           root /var/www;
+        index cska.html;
+        }
+
+}

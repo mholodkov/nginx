@@ -1,0 +1,49 @@
+services:
+ - docker:dind
+
+stages:
+ - build
+ - deploy
+
+variables:
+  K8S_API_URL: https://192.168.89.214:6443
+  DOCKER_TLS_CERTDIR: ""
+
+build:
+  tags:
+    - Privileged
+  stage: build
+  before_script:
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN docker.finch.fm:5000
+  image: docker:git
+  script:
+    - docker build -t $CI_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME:$CI_COMMIT_REF_SLUG .
+    - docker push $CI_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME:$CI_COMMIT_REF_SLUG
+   
+deploy:
+  tags:
+    - worker
+  stage: deploy
+  image: centosadmin/kubernetes-helm:v2.14.0
+  environment:
+    name: production
+  script:
+    - export KUBECONFIG='/etc/rancher/k3s/k3s.yaml'
+    - set -e
+    - set -x
+    - kubectl config set-cluster k8s --insecure-skip-tls-verify=true --server=$K8S_API_URL
+    - kubectl config set-credentials ci --token=$K8S_CI_TOKEN
+    - kubectl config set-context ci --cluster=k8s --user=ci
+    - kubectl config use-context ci
+    - helm init --client-only
+    - helm upgrade --install $CI_PROJECT_PATH_SLUG .helm
+        --set image.repository=$CI_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME
+        --set image.tag=$CI_COMMIT_REF_SLUG
+        --wait
+        --timeout 300
+        --atomic
+        --debug
+        --recreate-pods
+        --namespace=dev-dev
+        --tiller-namespace=dev-dev
+

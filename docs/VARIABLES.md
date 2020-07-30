@@ -1,0 +1,4 @@
+1. ```ARG ANDROID_COMPILE_SDK=27```
+2. ```ARG ANDROID_BUILD_TOOLS=28.0.3```
+2. ```ARG ANDROID_SDK_TOOLS=android-sdk.zip```
+
